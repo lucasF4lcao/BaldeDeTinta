@@ -1,3 +1,5 @@
+from PIL import Image
+import numpy as np
 from collections import deque
 
 # 250 500
@@ -47,6 +49,13 @@ def salvar_matriz_em_txt(matriz, nome_arquivo="saida.txt"):
         for linha in matriz:
             arquivo.write(" ".join(map(str, linha)) + "\n")
 
+
+img = Image.open('imgs/UNIFOR_logo.png')
+img = img.convert('L')
+arr = np.asarray(img)
+np.savetxt('entrada.txt', arr, fmt='%d')
+
+
 imagem = ler_matriz_do_arquivo()
 
 linha, coluna, nova_cor = entrada_parametros()
@@ -55,4 +64,8 @@ imagem_resultante = preenchimentoBFS(imagem, linha, coluna, nova_cor)
 
 salvar_matriz_em_txt(imagem_resultante)
 
-print(f"Matriz resultante salva em 'saida.txt'.")
+
+arr = np.loadtxt('saida.txt', dtype=np.uint8)
+img = Image.fromarray(arr, mode='L')
+img.save('imgs/imagem_reconstruida.png')
+img.show()
