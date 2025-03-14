@@ -1,69 +1,125 @@
 from PIL import Image
 import numpy as np
-from collections import deque
+from queue import Queue
 
-# 250 500
-def preenchimentoBFS(imagem, linha, coluna, nova_cor):
-    cor_original = imagem[linha][coluna]
 
-    if cor_original == nova_cor:
-        return imagem
+class Node:
+    def __init__(self, item):
+        self.item = item  # Vértice vizinho (coordenada (x, y))
+        self.next = None  # Ponteiro para o próximo nó
 
-    fila = deque([(linha, coluna)])
-    imagem[linha][coluna] = nova_cor
 
-    direcoes = [
-        (-1, 0), (1, 0), (0, -1), (0, 1),
-        (-1, -1), (-1, 1), (1, -1), (1, 1)
-    ]
+class Bag:
+    def __init__(self):
+        self.first = None  # Primeiro nó da lista
 
-    while fila:
-        x, y = fila.popleft()
+    def add(self, item):
+        new_node = Node(item)
+        new_node.next = self.first
+        self.first = new_node
 
-        for dx, dy in direcoes:
-            nx, ny = x + dx, y + dy
+    def __iter__(self):
+        current = self.first
+        while current:
+            yield current.item
+            current = current.next
 
-            if 0 <= nx < len(imagem) and 0 <= ny < len(imagem[0]) and imagem[nx][ny] == cor_original:
-                imagem[nx][ny] = nova_cor
-                fila.append((nx, ny))
 
-    return imagem
+class Graph:
+    def __init__(self, imagem):
+        self.adj = {}  # Dicionário {(x, y): Bag} -> Lista de adjacência
+        self.pixel_colors = {}  # Dicionário {(x, y): cor}
+        self.create_graph(imagem)
+
+    def create_graph(self, imagem):
+        height, width = len(imagem), len(imagem[0])
+        directions = [
+            (-1, 0), (1, 0), (0, -1), (0, 1),
+            (-1, -1), (-1, 1), (1, -1), (1, 1)
+        ]
+
+        # Criar os vértices e armazenar cores
+        for x in range(height):
+            for y in range(width):
+                self.adj[(x, y)] = Bag()  # Cada pixel é um vértice no dicionário
+                self.pixel_colors[(x, y)] = imagem[x][y]  # Armazena a cor original do pixel
+
+        # Criar as conexões entre os vértices vizinhos
+        for x in range(height):
+            for y in range(width):
+                for dx, dy in directions:
+                    nx, ny = x + dx, y + dy
+                    if (nx, ny) in self.adj:  # Verifica se o vizinho está dentro da imagem
+                        self.adj[(x, y)].add((nx, ny))
+
+
+class BreadthFirstPaths:
+    def __init__(self, graph, start, new_color):
+        self.graph = graph
+        self.start = start  # Vértice inicial
+        self.new_color = new_color
+        self.bfs()
+
+    def bfs(self):
+        x, y = self.start
+        original_color = self.graph.pixel_colors[(x, y)]
+        if original_color == self.new_color:
+            return  # Se já estiver na cor desejada, não faz nada
+
+        queue = Queue()
+        queue.put((x, y))
+        visited = set()
+        visited.add((x, y))
+
+        # Modifica a cor do vértice inicial
+        self.graph.pixel_colors[(x, y)] = self.new_color
+
+        while not queue.empty():
+            vx, vy = queue.get()
+
+            for nx, ny in self.graph.adj[(vx, vy)]:
+                if (nx, ny) not in visited and self.graph.pixel_colors[(nx, ny)] == original_color:
+                    # Modifica a cor do vértice no grafo
+                    self.graph.pixel_colors[(nx, ny)] = self.new_color
+                    visited.add((nx, ny))
+                    queue.put((nx, ny))
+
 
 def ler_matriz_do_arquivo(nome_arquivo="entrada.txt"):
     with open(nome_arquivo, "r") as arquivo:
-        linhas = arquivo.readlines()
+        return [list(map(int, linha.split())) for linha in arquivo.readlines()]
 
-    matriz = []
-    for linha in linhas:
-        matriz.append(list(map(int, linha.split())))
 
-    return matriz
+def salvar_matriz_em_txt(graph, nome_arquivo="saida.txt"):
+    height = max(x for x, y in graph.pixel_colors.keys()) + 1
+    width = max(y for x, y in graph.pixel_colors.keys()) + 1
+    matriz = [[0] * width for _ in range(height)]
+
+    for (x, y), color in graph.pixel_colors.items():
+        matriz[x][y] = color
+
+    with open(nome_arquivo, "w") as arquivo:
+        for linha in matriz:
+            arquivo.write(" ".join(map(str, linha)) + "\n")
+
 
 def entrada_parametros():
     linha, coluna = map(int, input("Informe as coordenadas do ponto inicial (linha, coluna): ").split())
     nova_cor = int(input("Informe a nova cor: "))
     return linha, coluna, nova_cor
 
-def salvar_matriz_em_txt(matriz, nome_arquivo="saida.txt"):
-    with open(nome_arquivo, "w") as arquivo:
-        for linha in matriz:
-            arquivo.write(" ".join(map(str, linha)) + "\n")
 
-
-img = Image.open('imgs/UNIFOR_logo.png')
-img = img.convert('L')
+img = Image.open('imgs/imagem.png').convert('L')
 arr = np.asarray(img)
 np.savetxt('entrada.txt', arr, fmt='%d')
 
-
 imagem = ler_matriz_do_arquivo()
+graph = Graph(imagem)
 
 linha, coluna, nova_cor = entrada_parametros()
+bfs = BreadthFirstPaths(graph, (linha, coluna), nova_cor)
 
-imagem_resultante = preenchimentoBFS(imagem, linha, coluna, nova_cor)
-
-salvar_matriz_em_txt(imagem_resultante)
-
+salvar_matriz_em_txt(graph)
 
 arr = np.loadtxt('saida.txt', dtype=np.uint8)
 img = Image.fromarray(arr, mode='L')
