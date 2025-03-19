@@ -5,13 +5,13 @@ from queue import Queue
 
 class Node:
     def __init__(self, item):
-        self.item = item  # Vértice vizinho (coordenada (x, y))
-        self.next = None  # Ponteiro para o próximo nó
+        self.item = item
+        self.next = None
 
 
 class Bag:
     def __init__(self):
-        self.first = None  # Primeiro nó da lista
+        self.first = None
 
     def add(self, item):
         new_node = Node(item)
@@ -27,8 +27,8 @@ class Bag:
 
 class Graph:
     def __init__(self, imagem):
-        self.adj = {}  # Dicionário {(x, y): Bag} -> Lista de adjacência
-        self.pixel_colors = {}  # Dicionário {(x, y): cor}
+        self.adj = {}
+        self.pixel_colors = {}
         self.create_graph(imagem)
 
     def create_graph(self, imagem):
@@ -38,25 +38,23 @@ class Graph:
             (-1, -1), (-1, 1), (1, -1), (1, 1)
         ]
 
-        # Criar os vértices e armazenar cores
         for x in range(height):
             for y in range(width):
-                self.adj[(x, y)] = Bag()  # Cada pixel é um vértice no dicionário
-                self.pixel_colors[(x, y)] = imagem[x][y]  # Armazena a cor original do pixel
+                self.adj[(x, y)] = Bag()
+                self.pixel_colors[(x, y)] = imagem[x][y]
 
-        # Criar as conexões entre os vértices vizinhos
         for x in range(height):
             for y in range(width):
                 for dx, dy in directions:
                     nx, ny = x + dx, y + dy
-                    if (nx, ny) in self.adj:  # Verifica se o vizinho está dentro da imagem
+                    if (nx, ny) in self.adj:
                         self.adj[(x, y)].add((nx, ny))
 
 
 class BreadthFirstPaths:
     def __init__(self, graph, start, new_color):
         self.graph = graph
-        self.start = start  # Vértice inicial
+        self.start = start
         self.new_color = new_color
         self.bfs()
 
@@ -64,14 +62,13 @@ class BreadthFirstPaths:
         x, y = self.start
         original_color = self.graph.pixel_colors[(x, y)]
         if original_color == self.new_color:
-            return  # Se já estiver na cor desejada, não faz nada
+            return
 
         queue = Queue()
         queue.put((x, y))
         visited = set()
         visited.add((x, y))
 
-        # Modifica a cor do vértice inicial
         self.graph.pixel_colors[(x, y)] = self.new_color
 
         while not queue.empty():
@@ -79,7 +76,6 @@ class BreadthFirstPaths:
 
             for nx, ny in self.graph.adj[(vx, vy)]:
                 if (nx, ny) not in visited and self.graph.pixel_colors[(nx, ny)] == original_color:
-                    # Modifica a cor do vértice no grafo
                     self.graph.pixel_colors[(nx, ny)] = self.new_color
                     visited.add((nx, ny))
                     queue.put((nx, ny))
@@ -112,6 +108,7 @@ def entrada_parametros():
 img = Image.open('imgs/imagem.png').convert('L')
 arr = np.asarray(img)
 np.savetxt('entrada.txt', arr, fmt='%d')
+img.save('imgs/imagem_grayscale.png')
 
 imagem = ler_matriz_do_arquivo()
 graph = Graph(imagem)
